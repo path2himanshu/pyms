@@ -2,9 +2,9 @@
 
 ## Environments variables of PyMS:
 
-**CONFIGMAP_FILE**: The path to the configuration file. By default, PyMS searches for the configuration file in your
+**PYMS_CONFIGMAP_FILE**: The path to the configuration file. By default, PyMS searches for the configuration file in your
 current folder with the name "config.yml"
-**KEY_FILE**: The path to the key file to decrypt your configuration. By default, PyMS searches for the configuration file in your
+**PYMS_KEY_FILE**: The path to the key file to decrypt your configuration. By default, PyMS searches for the configuration file in your
 current folder with the name "key.key"
 
 ## Create configuration
@@ -136,7 +136,7 @@ API = Api(
 
 ## Looking for Configuration file with Kubernetes Configmaps
 By default, the Microservice class searches for a config.yml in the same path. You can set a different route or set a json file.
-To change this path, you must define an environment variable called `CONFIGMAP_FILE`.
+To change this path, you must define an environment variable called `PYMS_CONFIGMAP_FILE`.
 
 This way of looking for the configuration is useful when you work with Docker and Kubernetes. For example, you could integrate
 a configmap of Kubernetes, with this microservice and a deployment with:
@@ -154,7 +154,7 @@ spec:
       - name: my-microservice
         image: ...
         env:
-          - name: CONFIGMAP_FILE
+          - name: PYMS_CONFIGMAP_FILE
             value: "/usr/share/microservice/config.yaml"
 
         volumeMounts:
@@ -167,3 +167,29 @@ spec:
 ```
 
 See [Routing](routing.md) and [Examples](examples.md) to continue with this tutorial
+
+## Reload configuration without stopping your services
+
+In a production environment you may need to change the microservice's configuration without restarting it.
+
+PyMS has a feature to reload the configuration:
+
+```
+curl -X POST http://localhost:5000/reload-config
+```
+
+This endpoint calls the method `Microservice.reload_conf()`, which restarts the services, 
+the encryption configuration and initializes `create_app`.
+
+```python
+    def reload_conf(self):
+        self.delete_services()
+        self.config.reload()
+        self.services = []
+        self.init_services()
+        self.crypt.config.reload()
+        self.create_app()
+```
+
+This means that your libraries will be restarted, which is why it's important to initialize your BD, 
+your configuration inside `init_libs` method. See more info [how to use Microservice class in this link](ms_class.md)

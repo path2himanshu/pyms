@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List
+from typing import List, Optional
 
 from flask import Flask
 
@@ -10,6 +10,7 @@ from pyms.constants import LOGGER_NAME, CONFIG_BASE
 from pyms.crypt.driver import CryptResource
 from pyms.flask.app.utils import SingletonMeta, ReverseProxied
 from pyms.flask.healthcheck import healthcheck_blueprint
+from pyms.flask.configreload import configreload_blueprint
 from pyms.flask.services.driver import ServicesResource, DriverService
 from pyms.logger import CustomJsonFormatter
 from pyms.utils import check_package_exists, import_from
@@ -38,7 +39,7 @@ class Microservice(ConfigResource, metaclass=SingletonMeta):
         app.run()
     ```
     Environments variables of PyMS:
-    **CONFIGMAP_FILE**: The path to the configuration file. By default, PyMS search the configuration file in your
+    **PYMS_CONFIGMAP_FILE**: The path to the configuration file. By default, PyMS search the configuration file in your
     actual folder with the name "config.yml"
 
     ## Create configuration
@@ -72,12 +73,12 @@ class Microservice(ConfigResource, metaclass=SingletonMeta):
     Current services are swagger, request, tracer, metrics
     """
     config_resource = CONFIG_BASE
-    services: List[DriverService] = []
+    services: List[str] = []
     application = Flask
-    swagger: DriverService = None
-    request: DriverService = None
-    tracer: DriverService = None
-    metrics: DriverService = None
+    swagger: Optional[DriverService] = None
+    request: Optional[DriverService] = None
+    tracer: Optional[DriverService] = None
+    metrics: Optional[DriverService] = None
     _singleton = True
 
     def __init__(self, *args, **kwargs):
@@ -218,6 +219,7 @@ class Microservice(ConfigResource, metaclass=SingletonMeta):
 
         # Initialize Blueprints
         self.application.register_blueprint(healthcheck_blueprint)
+        self.application.register_blueprint(configreload_blueprint)
 
         self.init_libs()
         self.add_error_handlers()
